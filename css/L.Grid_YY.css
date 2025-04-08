@@ -1,0 +1,14 @@
+/* L.Grid_YY.css */
+/* Written: 2024-12-11 */
+    
+.maidenhead-label {
+    background: transparent;
+    color: #ff7d78;
+    text-align: center;
+    text-shadow: 2px 2px 2px #fff, -2px -2px 2px #fff;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}

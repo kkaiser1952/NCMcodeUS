@@ -1,0 +1,189 @@
+<?php
+// stationMarkers.php
+// Written: 2017
+// Updated: 2024-09-??
+
+ini_set('display_errors', 1);
+error_reporting(E_ALL ^ E_NOTICE);
+
+require_once "Geocoder.php";
+require "getCrossRoads.php";
+
+use What3words\Geocoder\Geocoder;
+
+$api = new Geocoder("5WHIM4GD");
+
+// Get stations with duplicate coordinates for marker tilt
+$dupCalls = "";
+$sql = "SELECT
+            GROUP_CONCAT(CONCAT('_',callsign)) AS callsignX,
+            CONCAT('_',callsign) AS callsign,
+            latitude,
+            COUNT(latitude) as dupCount
+        FROM NetLog
+        WHERE netID = $q
+            AND latitude <> ''
+            AND callsign NOT IN('NONHAM','EMCOMM')
+        GROUP BY latitude
+        HAVING COUNT(latitude) > 1";
+
+foreach($db_found->query($sql) as $duperow) {
+    $dupCalls .= $duperow['callsign'] . ",";
+    $callsignX = $duperow['callsignX'];
+}
+
+// Get time log details for each callsign
+$timelogSql = "SELECT callsign,
+    GROUP_CONCAT(
+        CONCAT(TIME(timestamp), ' ', comment)
+        ORDER BY timestamp 
+        SEPARATOR '\n'
+    ) AS details
+    FROM TimeLog
+    WHERE NetID = $q
+        AND callsign NOT IN ('WEATHER')
+    GROUP BY callsign
+    ORDER BY callsign";
+
+$timelogDetails = array();
+foreach($db_found->query($timelogSql) as $row) {
+    $timelogDetails[$row['callsign']] = $row['details'];
+}
+
+// Create callsign layer group
+$sql = "SELECT 
+    CONCAT('var callsList = L.layerGroup([', 
+           GROUP_CONCAT(REPLACE(CONCAT('_',callsign),'/','') SEPARATOR ', '), 
+           '])') as callsList
+    FROM NetLog
+    WHERE netID = $q
+        AND latitude <> ''
+        AND callsign NOT IN('NONHAM','EMCOMM')";
+
+foreach($db_found->query($sql) as $callrow) {
+    $callsList = $callrow['callsList'];
+}
+
+// Get station markers data
+$sql = "SELECT 
+    netID, ID,
+    REPLACE(CONCAT('_',callsign),'/','') as callsign,
+    callsign as callsign2,
+    grid, netcall, activity, netcontrol,
+    CASE
+        WHEN netcontrol IN ('Log','PRM','2nd','LSN','EM','3rd','PIO','SEC') 
+        THEN 'NumberedDivIcon'
+        ELSE 'NumberedGreenDivIcon'
+    END as iconColor,
+    CASE
+        WHEN netcontrol IN ('Log','PRM','2nd','LSN','EM','3rd','PIO','SEC') 
+        THEN 'bluemrkr'
+        ELSE 'greenmrkr'
+    END as classColor,
+    CONCAT(latitude, ',', longitude) as koords,
+    CONCAT(Fname, ' ', Lname) AS name,
+    CONCAT('<b>Tactical: ',tactical,'<br>',UPPER(callsign),
+           '</b><br> ID: #',ID, '<br>',Fname, ' ', Lname,
+           '<br>',county,' Co., ',state,' Dist: ',district,
+           '<br>',latitude, ', ', longitude, '<br>',grid) as mrkrfill,
+    latitude, longitude
+FROM NetLog
+WHERE netID = $q
+    AND latitude IS NOT NULL
+    AND longitude IS NOT NULL
+    AND latitude <> ''
+    AND longitude <> ''
+    AND callsign NOT IN('NONHAM','EMCOMM')
+    AND callsign NOT LIKE '%CAMP%'
+    AND callsign NOT LIKE '%CREW%'
+    AND callsign <> ' '
+ORDER BY logdate";
+
+$rowno = 0;
+$fitBounds = "[";
+$stationMarkers = "";
+$callsignList = "";
+$stationList = "";
+$dup = -45;
+
+foreach($db_found->query($sql) as $logrow) {
+    $rowno++;
+    
+    $callsign = $logrow['callsign'];
+    $callsignList .= "$callsign,";
+    $original_callsign = $callsign;
+    
+    if (strpos($callsign,'/')) {
+        $callsign = substr($callsign, 0, strpos($callsign,'/'));
+    }
+    if (strpos($callsign,'-')) {
+        $callsign = substr($callsign, 0, strpos($callsign,'-'));
+    }
+    
+    $dup = (strpos($callsignX, $callsign) !== false) ? $dup + 45 : 0;
+    
+    if ($logrow['koords']) {
+        $w3w = $api->convertTo3wa($logrow['latitude'], $logrow['longitude']);
+        $w3w = $w3w['words']; // Adjusted array access for PHP 5 compatibility
+        
+        $div1 = "<div class='cc' style='text-transform:uppercase;'>" . $rowno . "<br>" . 
+                $logrow['mrkrfill'] . "<br>" .
+                "<br><a href='https://what3words.com/" . $w3w . "?maptype=osm' target='_blank'>///" . $w3w . "</a></div>";
+        
+        $div2 = "<div class='cc'>Show Cross Roads</div>";
+        
+        // Add timelog details if available
+		// An idea by Glen Briggs, KB0RPJ in Feb. 2025
+        $timelogDiv = "";
+        
+        $timelogDiv = "";
+        if (isset($timelogDetails[$logrow['callsign2']])) {
+            $timelogDiv = "<div class='cc'><br><span style='font-weight:bold'>Time Log:</span><br>";
+            $details = str_replace('<br>', '\n', $timelogDetails[$logrow['callsign2']]);
+            $timelogDiv .= nl2br($details);
+            $timelogDiv .= "</div>";
+        } else {
+            $timelogDiv = "<div class='cc'><span style='font-weight:bold'>Time Log:</span><br>No Comments</div>";
+        }
+        }
+        
+        $div5 = "<div class='cc'><br><a href='http://www.findu.com/cgi-bin/map-near.cgi?" .
+                "lat=" . $logrow['latitude'] . "&lon=" . $logrow['longitude'] . "&cnt=10' " .
+                "target='_blank'>Nearby APRS stations</a><br><br>stationMarkers.php</div>";
+        
+        $stationMarkers .= "
+            var " . $callsign . " = new L.marker(new L.latLng(" . $logrow['koords'] . "),{ 
+                rotationAngle: " . $dup . ",
+                rotationOrigin: 'bottom',
+                contextmenu: true,
+                contextmenuWidth: 140,
+                contextmenuItems: [{ 
+                    text: 'Click here to add mileage circles', 
+                    callback: circleKoords
+                }],
+                icon: new L." . $logrow['iconColor'] . "({number: '" . $rowno . "' }),
+                title: 'marker_" . $rowno . "'
+            }).addTo(fg).bindPopup(" . 
+                json_encode(
+                    $div1 . "<br>" . 
+                    $timelogDiv . 
+                    $div5
+                ) . 
+            ").openPopup();
+            
+            $('" . $callsign . "._icon').addClass('" . $logrow['classColor'] . "');
+            if (typeof stationMarkers !== 'undefined') {
+                stationMarkers.push(" . $callsign . ");
+            }
+        ";
+        
+        $fitBounds .= "[" . $logrow['koords'] . "],";
+        $stationList .= "<a class='rowno' id='marker_$rowno' href='#'>" . $rowno . " " . $original_callsign . "</a><br>";
+    }
+
+
+$fitBounds = substr($fitBounds, 0, -1) . "]";
+$stationMarkers = substr($stationMarkers, 0, -1) . ";\n";
+$callsignList = substr($callsignList, 0, -1);
+$callsList = substr($callsList, 0, -1) . ");\n";
+?>

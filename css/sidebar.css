@@ -1,0 +1,31 @@
+/* sidebar.css */
+.sidebar {
+    height: 100%;
+    width: 300px;
+    position: fixed;
+    top: 0;
+    right: 0;
+    background-color: darkgrey;
+    transition: 0.5s;
+    transform: translateX(100%);
+    overflow-x: hidden;
+    padding-top: 60px;
+    z-index: 1000; /* Add this line */
+    box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+}
+
+.sidebar.show {
+    transform: translateX(0);
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    left: 15px;
+    font-size: 36px;
+    margin-left: 50px;
+}
+
+.apply-btn, .reset-btn {
+    margin-top: 20px;
+}

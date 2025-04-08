@@ -1,0 +1,105 @@
+/* Used by the buy me a coffee stuff */
+/* Coffee.css */
+/* Written: 2025-02-01 */
+
+.coffee-button {
+            background-color: #ffdd57;
+            padding: 7px 18px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            color: #654321;
+            border-radius: 999px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            transition: all 0.3s ease;
+            position: relative; 
+            display: inline-block; 
+            margin-left: 5px;
+            position: relative;
+        }
+
+        .donation-container {
+            
+            max-width: 300px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 40px;
+            position: fixed;
+            right: 15px;
+        }
+
+        .donation-content {
+            background-color: white;
+            margin-top: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .donation-container.expanded {
+            height: 280px;
+        }
+
+        .donation-container.expanded .donation-content {
+            display: block;
+        }
+
+        .amount-buttons {
+            display: flex;
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .amount-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 999px;
+            background: white;
+            cursor: pointer;
+            color: #654321;
+            font-weight: bold;
+        }
+
+        .amount-btn.selected {
+            background: #ffdd57;
+            border-color: #edc937;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .payment-btn {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 999px;
+            background: white;
+            cursor: pointer;
+            color: #654321;
+            font-weight: bold;
+        }
+
+        .payment-btn.selected {
+            background: #ffdd57;
+            border-color: #edc937;
+        }
+
+        .donate-btn {
+            width: 100%;
+            padding: 10px;
+            background: #ffdd57;
+            color: #654321;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .donate-btn:hover {
+            background: #edc937;
+        }
